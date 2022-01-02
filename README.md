@@ -1,6 +1,10 @@
 # Mommas Cookbook
 A Repository for Mom's Recipes
 
+#### Contents
+1. [bacalhau à Gomes de Sá](https://github.com/UfSoft/mommas-cookbook#bacalhau-%C3%A0-gomes-de-s%C3%A1-recommended-by-s0undt3ch)
+2. [Beef-Rendang](https://github.com/UfSoft/mommas-cookbook#beef-rendang-recommended-by-ngodn)
+
 ---
 
 ## bacalhau à Gomes de Sá, recommended by [@s0undt3ch](https://github.com/s0undt3ch)
@@ -76,9 +80,7 @@ the Basque arrived.
 11. Bake for 40 minutes.
 12. Garnish with quartered or sliced hard-boiled eggs, chopped parsley and black olives.
 
----
-
-## Beef-Rendang, recommended by [@ngodn](https://github.com/ngodn)
+## Beef Rendang, recommended by [@ngodn](https://github.com/ngodn)
 > The King of curries
 <img width="400" src="https://user-images.githubusercontent.com/51025241/147875308-f068e413-ef87-40cd-b9c7-438641801b52.jpeg">
 As made by [Gordon Ramsey](https://www.youtube.com/watch?v=ied7EVlADgA) 
