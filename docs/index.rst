@@ -2,6 +2,10 @@
 
 .. _about:
 
+.. include:: ../README.rst
+   :start-after: include-starts-here
+   :end-before: include-ends-here
+
 Documentation
 =============
 
