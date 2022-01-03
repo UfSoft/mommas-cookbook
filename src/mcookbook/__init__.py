@@ -5,6 +5,11 @@ import pathlib
 import re
 import sys
 
+import mcookbook.utils.logs
+
+# Override python's logging handler class as soon as possible
+mcookbook.utils.logs.set_logger_class()
+
 try:
     from .version import __version__
 except ImportError:  # pragma: no cover
