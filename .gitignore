@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ignore local vim directory
+.vim/
+
+# Ignore CI artifacts
+artifacts/
+
+# Ignore the setuptools_scm generated version file
+src/mcookbook/version.py

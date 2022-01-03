@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-# Copyright 2021-2022 VMware, Inc.
-# SPDX-License-Identifier: Apache-2.0
-#
 # pylint: disable=invalid-name,missing-module-docstring,missing-function-docstring
+from __future__ import annotations
+
 import argparse
 import pathlib
 import re

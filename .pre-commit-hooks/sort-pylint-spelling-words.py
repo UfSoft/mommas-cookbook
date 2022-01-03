@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# Copyright 2021-2022 VMware, Inc.
-# SPDX-License-Identifier: Apache-2.0
 # pylint: skip-file
+from __future__ import annotations
+
 import pathlib
 
 REPO_ROOT = pathlib.Path(__name__).resolve().parent

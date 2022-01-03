@@ -33,40 +33,51 @@ repos:
   # <---- Local Hooks ------------------------------------------------------------------------------------------------
 
   # ----- Formatting ------------------------------------------------------------------------------------------------>
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v2.29.0
-    hooks:
-      - id: pyupgrade
-        name: Rewrite Code to be Py3.9+
-        args: [
-          --py39-plus
-        ]
-        files: ^((setup|noxfile)|(src|tests)/.*)\.py$
-        exclude: src/mcb/version.py
-
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v2.6.0
     hooks:
       - id: reorder-python-imports
         args:
-          - --py3-plus
+          - --py39-plus
           - --application-directories=.:src
-        exclude: src/mcb/version.py
+          - --add-import=from __future__ import annotations
+        exclude: src/mcookbook/version.py
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.0
+    hooks:
+      - id: pyupgrade
+        name: Rewrite Code to be Py3.9+
+        args:
+          - --py39-plus
+        files: ^((setup|noxfile)|(src|tests)/.*)\.py$
+        exclude: ^src/mcookbook/(version|types/.*)\.py$
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.31.0
+    hooks:
+      - id: pyupgrade
+        name: Rewrite Custom Types to be Py3.9+
+        args:
+          - --py39-plus
+          - --keep-runtime-typing
+        files: ^src/mcookbook/types/.*\.py$
 
   - repo: https://github.com/psf/black
-    rev: 21.10b0
+    rev: 21.12b0
     hooks:
       - id: black
         args: [-l 100]
-        exclude: src/mcb/version.py
+        exclude: src/mcookbook/version.py
 
   - repo: https://github.com/asottile/blacken-docs
-    rev: v1.11.0
+    rev: v1.12.0
     hooks:
       - id: blacken-docs
 #        args: [--skip-errors]
-        files: ^((docs/.*|README)\.rst|src/mcb/.*\.py)$
-        additional_dependencies: [black==21.10b0]
+        files: ^((docs/.*|README)\.rst|src/mcookbook/.*\.py)$
+        exclude: src/mcookbook/version.py
+        additional_dependencies: [black==21.12b0]
   # <---- Formatting -------------------------------------------------------------------------------------------------
 
   # ----- Security -------------------------------------------------------------------------------------------------->
@@ -78,7 +89,7 @@ repos:
         name: Run bandit against the code base
         args: [--silent, -lll, --skip, B701]
         files: ^(?!tests/).*\.py$
-        exclude: src/mcb/version.py
+        exclude: src/mcookbook/version.py
   - repo: https://github.com/PyCQA/bandit
     rev: "1.7.0"
     hooks:
@@ -94,7 +105,7 @@ repos:
     rev: '4.0.1'
     hooks:
       - id: flake8
-        exclude: ^(src/mcb/version\.py|\.pre-commit-hooks/.*\.py)$
+        exclude: ^(src/mcookbook/version\.py|\.pre-commit-hooks/.*\.py)$
         additional_dependencies:
         - flake8-mypy-fork
         - flake8-docstrings
@@ -124,3 +135,64 @@ repos:
           - types-setuptools
           - pydantic
   # <---- Code Analysis ----------------------------------------------------------------------------------------------
+
+  # ----- Static Requirements --------------------------------------------------------------------------------------->
+  - repo: https://github.com/saltstack/pip-tools-compile-impersonate
+    rev: "4.2"
+    hooks:
+
+      # ----- Packaging Requirements -------------------------------------------------------------------------------->
+      - id: pip-tools-compile
+        alias: compile-py3.9-requirements
+        name: Static Py3.9 Requirements
+        files: ^requirements/base.txt$
+        pass_filenames: false
+        args:
+          - -v
+          - --py-version=3.9
+          - --platform=linux
+          - --include=requirements/base.txt
+          - requirements/static/pkg/base.in
+
+      - id: pip-tools-compile
+        alias: compile-py3.10-requirements
+        name: Static Py3.10 Requirements
+        files: ^requirements/base.txt$
+        pass_filenames: false
+        args:
+          - -v
+          - --py-version=3.10
+          - --platform=linux
+          - --include=requirements/base.txt
+          - requirements/static/pkg/base.in
+      # <---- Packaging Requirements ---------------------------------------------------------------------------------
+
+      # ----- CI Requirements---------------------------------------------------------------------------------------->
+      - id: pip-tools-compile
+        alias: compile-py3.9-ci-requirements
+        name: Static CI Py3.9 Requirements
+        files: ^requirements/((base|tests)\.txt|static/((pkg|ci)/(base|tests)\.in|pkg/py3\.9/base\.txt))$
+        pass_filenames: false
+        args:
+          - -v
+          - --py-version=3.9
+          - --platform=linux
+          - --include=requirements/static/pkg/py{py_version}/base.txt
+          - --include=requirements/tests.txt
+          - requirements/static/ci/tests.in
+
+      - id: pip-tools-compile
+        alias: compile-py3.10-ci-requirements
+        name: Static CI Py3.10 Requirements
+        files: ^requirements/((base|tests)\.txt|static/((pkg|ci)/(base|tests)\.in|pkg/py3\.10/base\.txt))$
+        pass_filenames: false
+        args:
+          - -v
+          - --py-version=3.10
+          - --platform=linux
+          - --include=requirements/static/pkg/py{py_version}/base.txt
+          - --include=requirements/tests.txt
+          - requirements/static/ci/tests.in
+      # <---- CI Requirements ----------------------------------------------------------------------------------------
+
+  # <---- Static Requirements ----------------------------------------------------------------------------------------
