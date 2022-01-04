@@ -45,7 +45,7 @@ class CLIService(metaclass=abc.ABCMeta):
                 task.cancel()
             await asyncio.shield(asyncio.gather(*tasks))
             await asyncio.shield(self.await_closed())
-            log.info("Passivbot terminated")
+            log.info("Terminated.")
 
     @abc.abstractmethod
     async def work(self) -> None:

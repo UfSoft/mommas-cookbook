@@ -51,7 +51,7 @@ repos:
         args:
           - --py39-plus
         files: ^((setup|noxfile)|(src|tests)/.*)\.py$
-        exclude: ^src/mcookbook/(version|types/.*)\.py$
+        exclude: ^src/mcookbook/(version|(types|config)/.*)\.py$
 
   - repo: https://github.com/asottile/pyupgrade
     rev: v2.31.0
@@ -61,7 +61,7 @@ repos:
         args:
           - --py39-plus
           - --keep-runtime-typing
-        files: ^src/mcookbook/types/.*\.py$
+        files: ^src/mcookbook/(types|config)/.*\.py$
 
   - repo: https://github.com/psf/black
     rev: 21.12b0

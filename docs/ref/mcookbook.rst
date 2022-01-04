@@ -13,11 +13,21 @@ Subpackages
    :maxdepth: 4
 
    mcookbook.abc
-   mcookbook.types
+   mcookbook.cli
+   mcookbook.config
+   mcookbook.exchanges
    mcookbook.utils
 
 Submodules
 ----------
+
+mcookbook.exceptions module
+---------------------------
+
+.. automodule:: mcookbook.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 mcookbook.version module
 ------------------------

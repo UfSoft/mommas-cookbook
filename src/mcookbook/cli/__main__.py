@@ -14,8 +14,8 @@ from pydantic import ValidationError
 
 from mcookbook import __version__  # type: ignore[attr-defined]
 from mcookbook.cli import live
+from mcookbook.config.live import LiveConfig
 from mcookbook.exceptions import MCookBookSystemExit
-from mcookbook.types.config import LiveConfig
 from mcookbook.utils.logs import setup_cli_logging
 from mcookbook.utils.logs import setup_logfile_logging
 from mcookbook.utils.logs import SORTED_LEVEL_NAMES
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> None:
     subparsers = parser.add_subparsers(title="Commands", dest="subparser")
     live_parser = subparsers.add_parser("live", help="Run Live")
 
-    # Setup each subparser
+    # Setup each sub-parser
     live.setup_parser(live_parser)
 
     # Parse the CLI arguments
@@ -115,7 +115,7 @@ def main(argv: list[str] | None = None) -> None:
             )
     except ValidationError as exc:
         parser.exit(status=1, message=f"Found some errors in the configuration:\n\n{exc}\n")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         parser.exit(
             status=1, message=f"Failed to load the configuration:\n{traceback.format_exc()}"
         )
@@ -142,14 +142,14 @@ def main(argv: list[str] | None = None) -> None:
         except ValueError:
             log.info("  - %s", config_file)
 
-    # Set the config private attributes
-    config._basedir = args.basedir
+    # Set the configuration private attributes
+    config._basedir = args.basedir  # pylint: disable=protected-access
 
     try:
         args.func(config)
     except MCookBookSystemExit as exc:
         parser.exit(status=1, message=f"Error: {exc}")
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         parser.exit(
             status=1,
             message=f"There was an error running {args.subparser}:\n{traceback.format_exc()}",

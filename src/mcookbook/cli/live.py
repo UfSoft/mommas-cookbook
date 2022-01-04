@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 
-from mcookbook.abc.cli import CLIService
-from mcookbook.types.config import LiveConfig
-from mcookbook.types.exchange import Exchange
+from mcookbook.cli.abc import CLIService
+from mcookbook.config.live import LiveConfig
+from mcookbook.exchanges import Exchange
 
 
 class LiveService(CLIService):
@@ -18,7 +18,11 @@ class LiveService(CLIService):
 
     def __init__(self, config: LiveConfig) -> None:
         self.config = config
-        self.exchange: Exchange = Exchange.construct(config=config)
+        exchange_cls: type[Exchange] = Exchange.resolve(
+            self.config.exchange.name, self.config.exchange.market
+        )
+
+        self.exchange = exchange_cls.construct(config=config)
         print(123, self.exchange.api)
 
     async def work(self) -> None:

@@ -1,6 +1,8 @@
 arg
 async
 attr
+binance
+ccxt
 changelog
 cli
 configs
@@ -12,6 +14,7 @@ momma's
 mommas
 nox
 pragma
+schemas
 subclasses
 virtualenv
 virtualenvs

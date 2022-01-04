@@ -110,6 +110,13 @@ def _get_pydir(session):
     return "py{}.{}".format(*version_info)
 
 
+def python_version_str(session):
+    version_info = _get_session_python_version_info(session)
+    if version_info < (3, 9):
+        session.error("Only Python >= 3.9 is supported")
+    return "{}.{}".format(*version_info)
+
+
 @nox.session(python=("3", "3.9", "3.10"))
 def tests(session):
     """
@@ -122,16 +129,12 @@ def tests(session):
         session.install(
             "--progress-bar=off", COVERAGE_VERSION_REQUIREMENT, silent=PIP_INSTALL_SILENT
         )
-        requirements_file = (
-            REPO_ROOT / "requirements" / "static" / "ci" / _get_pydir(session) / "tests.txt"
-        )
-        install_command = [
+        session.install(
             "--progress-bar=off",
-            "-r",
-            str(requirements_file.relative_to(REPO_ROOT)),
-        ]
-        session.install("--progress-bar=off", "-e", ".", silent=PIP_INSTALL_SILENT)
-        session.install(*install_command, silent=PIP_INSTALL_SILENT)
+            "-e",
+            f".[tests-{python_version_str(session)}]",
+            silent=PIP_INSTALL_SILENT,
+        )
 
         if EXTRA_REQUIREMENTS_INSTALL:
             session.log(
@@ -218,8 +221,11 @@ def tests(session):
                 shutil.copyfile(str(COVERAGE_REPORT_DB), str(ARTIFACTS_DIR / ".coverage"))
 
 
-def _lint(session, rcfile, flags, paths):
-    session.install("--progress-bar=off", "-e", ".[lint]", silent=PIP_INSTALL_SILENT)
+def _lint(session, rcfile, flags, paths, extras_require: tuple[str, ...]):
+    if SKIP_REQUIREMENTS_INSTALL is False:
+        session.install(
+            "--progress-bar=off", "-e", f".[{','.join(extras_require)}]", silent=PIP_INSTALL_SILENT
+        )
     session.run("pylint", "--version")
     pylint_report_path = os.environ.get("PYLINT_REPORT")
 
@@ -262,7 +268,7 @@ def lint_code(session):
         paths = session.posargs
     else:
         paths = ["setup.py", "noxfile.py", "src/mcookbook/"]
-    _lint(session, ".pylintrc", flags, paths)
+    _lint(session, ".pylintrc", flags, paths, extras_require=("lint",))
 
 
 @nox.session(python="3", name="lint-tests")
@@ -270,12 +276,18 @@ def lint_tests(session):
     """
     Run PyLint against Salt and it's test suite. Set PYLINT_REPORT to a path to capture output.
     """
-    flags = ["--disable=I"]
+    flags = ["--disable=I,redefined-outer-name"]
     if session.posargs:
         paths = session.posargs
     else:
         paths = ["tests/"]
-    _lint(session, ".pylintrc", flags, paths)
+    _lint(
+        session,
+        ".pylintrc",
+        flags,
+        paths,
+        extras_require=("lint", f"tests-{python_version_str(session)}"),
+    )
 
 
 @nox.session(python="3")
