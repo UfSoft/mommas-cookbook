@@ -60,7 +60,7 @@ jobs:
       run: |
         nox --force-color -e lint --install-only
 
-    - name: Build Docs
+    - name: Run PyLint
       env:
         SKIP_REQUIREMENTS_INSTALL: YES
       run: |
