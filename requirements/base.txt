@@ -1,3 +1,4 @@
 ccxt>=1.66.16
 pydantic>=1.9.0
 polars>=0.12.7
+cachetools

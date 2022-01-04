@@ -25,6 +25,10 @@ attrs==21.4.0
     #   -r requirements/static/pkg/py3.9/base.txt
     #   aiohttp
     #   pytest
+cachetools==5.0.0
+    # via
+    #   -r requirements/base.txt
+    #   -r requirements/static/pkg/py3.9/base.txt
 ccxt==1.66.21
     # via
     #   -r requirements/base.txt

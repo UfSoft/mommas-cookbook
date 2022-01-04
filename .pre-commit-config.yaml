@@ -121,6 +121,7 @@ repos:
         additional_dependencies:
           - types-attrs
           - types-setuptools
+          - types-cachetools
           - pydantic
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -133,6 +134,7 @@ repos:
         additional_dependencies:
           - types-attrs
           - types-setuptools
+          - types-cachetools
           - pydantic
   # <---- Code Analysis ----------------------------------------------------------------------------------------------
 
