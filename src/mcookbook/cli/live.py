@@ -8,6 +8,7 @@ import asyncio
 
 from mcookbook.abc.cli import CLIService
 from mcookbook.types.config import LiveConfig
+from mcookbook.types.exchange import Exchange
 
 
 class LiveService(CLIService):
@@ -17,6 +18,8 @@ class LiveService(CLIService):
 
     def __init__(self, config: LiveConfig) -> None:
         self.config = config
+        self.exchange: Exchange = Exchange.construct(config=config)
+        print(123, self.exchange.api)
 
     async def work(self) -> None:
         """

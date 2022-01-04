@@ -4,6 +4,7 @@ Configuration related types.
 from __future__ import annotations
 
 import json
+import logging
 import pathlib
 import pprint
 import traceback
@@ -11,12 +12,17 @@ from typing import Any
 from typing import Optional
 from typing import TypeVar
 
+import ccxt.async_support as ccxt_async
+from pydantic import Field
 from pydantic import PrivateAttr
 from pydantic import validator
 
 from mcookbook.exceptions import MCookBookSystemExit
 from mcookbook.types import MCookBookBaseModel
+from mcookbook.utils import merge_dictionaries
 from mcookbook.utils.logs import SORTED_LEVEL_NAMES
+
+log = logging.getLogger(__name__)
 
 BaseConfigType = TypeVar("BaseConfigType", bound="BaseConfig")
 
@@ -71,24 +77,50 @@ class LoggingConfig(MCookBookBaseModel):
     file: LoggingFileConfig = LoggingFileConfig()
 
 
-class Exchange(MCookBookBaseModel):
+class ExchangeConfig(MCookBookBaseModel):
     """
     Exchange configuration model.
     """
 
     name: str
-    key: str
-    secret: str
+    key: str = Field(..., exclude=True)
+    secret: str = Field(..., exclude=True)
+    password: Optional[str] = Field(None, exclude=True)
+    uid: Optional[str] = Field(None, exclude=True)
+    cctx_config: Optional[dict[str, Any]] = None
+
+    _cctx = PrivateAttr()
 
     @validator("name")
     @classmethod
     def _validate_exchange_name(cls, value: str) -> str:
+        value = value.lower()
+        ccxt_exchanges: list[str] = ccxt_async.exchanges
+        if value not in ccxt_exchanges:
+            raise ValueError(f"The exchange {value!r} is not supported by CCXT.")
         supported_exchanges: tuple[str, ...] = ("binance",)
         if value not in supported_exchanges:
             raise ValueError(
-                f"The exchange {value!r} is not supported. Choose one of {', '.join(supported_exchanges)}"
+                f"The exchange {value!r} is not yet supported. Choose one of {', '.join(supported_exchanges)}"
             )
         return value
+
+    def get_ccxt_config(self) -> dict[str, Any]:
+        """
+        Return a dictionary which will be used to instantiate a ccxt exchange class.
+        """
+        ex_config = {}
+        if self.key:
+            ex_config["apiKey"] = self.key
+        if self.secret:
+            ex_config["secret"] = self.secret
+        if self.password:
+            ex_config["password"] = self.password
+        if self.uid:
+            ex_config["uid"] = self.uid
+        if self.cctx_config:
+            ex_config.update(self.cctx_config)
+        return ex_config
 
 
 class BaseConfig(MCookBookBaseModel):
@@ -96,7 +128,14 @@ class BaseConfig(MCookBookBaseModel):
     Base configuration model.
     """
 
-    exchange: Exchange
+    class Config:
+        """
+        Schema configuration.
+        """
+
+        validate_assignment = True
+
+    exchange: ExchangeConfig = Field(..., allow_mutation=False)
 
     # Optional Configs
     logging: LoggingConfig = LoggingConfig()
@@ -135,16 +174,3 @@ class LiveConfig(BaseConfig):
     """
     Live configuration schema.
     """
-
-
-def merge_dictionaries(target_dict: dict[Any, Any], *source_dicts: dict[Any, Any]) -> None:
-    """
-    Recursively merge each of the ``source_dicts`` into ``target_dict`` in-place.
-    """
-    for source_dict in source_dicts:
-        for key, value in source_dict.items():
-            if isinstance(value, dict):
-                target_dict_value = target_dict.setdefault(key, {})
-                merge_dictionaries(target_dict_value, value)
-            else:
-                target_dict[key] = value

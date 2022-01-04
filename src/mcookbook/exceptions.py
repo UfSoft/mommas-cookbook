@@ -14,3 +14,9 @@ class MCookBookSystemExit(SystemExit):
     """
     Exception raised to exit.
     """
+
+
+class OperationalException(MCookBookBaseException):
+    """
+    Operational exception.
+    """
