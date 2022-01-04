@@ -14,6 +14,7 @@ from pydantic import PrivateAttr
 
 from mcookbook.config.live import LiveConfig
 from mcookbook.exceptions import OperationalException
+from mcookbook.pairlist.manager import PairListManager
 from mcookbook.utils import merge_dictionaries
 from mcookbook.utils import sanitize_dictionary
 
@@ -31,12 +32,36 @@ class Exchange(BaseModel):
     config: LiveConfig
 
     _api: type[CCXTExchange] = PrivateAttr()
+    _markets: dict[str, dict[str, Any]] = PrivateAttr(default_factory=dict)
+    _pairlist_manager: PairListManager = PrivateAttr()
 
     def _get_ccxt_headers(self) -> dict[str, str] | None:
         return None
 
     def _get_ccxt_config(self) -> dict[str, Any] | None:
-        return None
+        return {"enableRateLimit": True}
+
+    @classmethod
+    def resolved(cls, config: LiveConfig) -> Exchange:
+        """
+        Resolve the passed ``name`` and ``market`` to class implementation.
+        """
+        name = config.exchange.name
+        market = config.exchange.market
+        for subclass in cls.__subclasses__():
+            subclass_name = subclass._name  # pylint: disable=protected-access
+            subclass_market = subclass._market  # pylint: disable=protected-access
+            if subclass_name == name and market == subclass_market:
+                instance = subclass.parse_obj({"config": config})
+                instance._pairlist_manager = PairListManager.construct(config=config)
+                instance._pairlist_manager._exchange = instance
+                for handler in config.pairlists:
+                    handler._exchange = instance
+                instance._pairlist_manager._pairlist_handlers = config.pairlists
+                return instance
+        raise OperationalException(
+            f"Cloud not find an implementation for the {name}(market={market}) exchange."
+        )
 
     @property
     def api(self) -> CCXTExchange:
@@ -72,16 +97,25 @@ class Exchange(BaseModel):
                 raise OperationalException(f"Initialization of ccxt failed. Reason: {exc}") from exc
         return self._api
 
-    @classmethod
-    def resolve(cls, name: str, market: str) -> type[Exchange]:
+    async def get_markets(self) -> dict[str, Any]:
         """
-        Resolve the passed ``name`` and ``market`` to class implementation.
+        Load the exchange markets.
         """
-        for subclass in cls.__subclasses__():
-            subclass_name = subclass._name  # pylint: disable=protected-access
-            subclass_market = subclass._market  # pylint: disable=protected-access
-            if subclass_name == name and subclass_market == market:
-                return subclass
-        raise OperationalException(
-            "Cloud not find an implementation for the {name}(market={market}) exchange."
-        )
+        if not self._markets:
+            log.info("Loading markets")
+            self._markets = await self.api.load_markets()
+        return self._markets
+
+    @property
+    def markets(self) -> dict[str, Any]:
+        """
+        Return the loaded markets.
+        """
+        return self._markets
+
+    @property
+    def pairlist_manager(self) -> PairListManager:
+        """
+        Return the pair list manager.
+        """
+        return self._pairlist_manager

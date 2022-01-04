@@ -19,14 +19,14 @@ class ExchangeConfig(BaseModel):
     """
 
     name: str
-    market: str = "futures"
+    market: str = "future"
     key: str = Field(..., exclude=True)
     secret: str = Field(..., exclude=True)
     password: Optional[str] = Field(None, exclude=True)
     uid: Optional[str] = Field(None, exclude=True)
-    cctx_config: Optional[dict[str, Any]] = None
-    pair_allow_list: Optional[list[str]] = None
-    pair_block_list: Optional[list[str]] = None
+    cctx_config: dict[str, Any] = Field(default_factory=dict)
+    pair_allow_list: list[str] = Field(default_factory=list)
+    pair_block_list: list[str] = Field(default_factory=list)
 
     _cctx = PrivateAttr()
 
@@ -53,7 +53,7 @@ class ExchangeConfig(BaseModel):
     @classmethod
     def _validate_market(cls, value: str) -> str:
         value = value.lower()
-        valid_markets: tuple[str, ...] = ("futures", "spot")
+        valid_markets: tuple[str, ...] = ("future", "spot")
         if value not in valid_markets:
             raise ValueError(
                 f"The market value {value!r} is not valid. Choose one of {', '.join(valid_markets)}"

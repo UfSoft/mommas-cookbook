@@ -18,19 +18,25 @@ class LiveService(CLIService):
 
     def __init__(self, config: LiveConfig) -> None:
         self.config = config
-        exchange_cls: type[Exchange] = Exchange.resolve(
-            self.config.exchange.name, self.config.exchange.market
-        )
-
-        self.exchange = exchange_cls.construct(config=config)
-        print(123, self.exchange.api)
+        self.exchange = Exchange.resolved(config)
 
     async def work(self) -> None:
         """
         Routines to run the service.
         """
+        assert self.exchange.api  # Load cctx api
+        await self.exchange.get_markets()
+        await self.exchange.pairlist_manager.refresh_pairlist()
         while True:
             await asyncio.sleep(1)
+
+    async def await_closed(self) -> None:
+        """
+        Run shutdown routines.
+        """
+        if self.exchange:
+            await self.exchange.api.close()
+        return await super().await_closed()
 
 
 async def _main(config: LiveConfig) -> None:
