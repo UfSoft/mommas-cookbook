@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from mcookbook.types import config
+from mcookbook.utils import merge_dictionaries
 
 
 @pytest.fixture
@@ -191,7 +191,7 @@ def test_missing_top_level_keys(complete_dictionary):
     }
     assert "api_keys" not in target_dict
     assert "configs" not in target_dict
-    config.merge_dictionaries(target_dict, keys, configs)
+    merge_dictionaries(target_dict, keys, configs)
     assert target_dict == complete_dictionary
 
 
@@ -334,7 +334,7 @@ def test_nested_dictionaries(complete_dictionary):
     assert "account-2" not in target_dict["api_keys"]
     assert "config-2" not in target_dict["configs"]
     assert "ETHUSDT" not in target_dict["symbols"]
-    config.merge_dictionaries(target_dict, keys, configs, symbols)
+    merge_dictionaries(target_dict, keys, configs, symbols)
     assert target_dict == complete_dictionary
 
 
@@ -349,6 +349,6 @@ def test_nested_key_override(complete_dictionary):
 
     assert complete_dictionary["symbols"]["ETHUSDT"]["key_name"] == "account-1"
     assert complete_dictionary["symbols"]["ETHUSDT"]["config_name"] == "config-1"
-    config.merge_dictionaries(complete_dictionary, symbols)
+    merge_dictionaries(complete_dictionary, symbols)
     assert complete_dictionary["symbols"]["ETHUSDT"]["key_name"] == "account-1"
     assert complete_dictionary["symbols"]["ETHUSDT"]["config_name"] == "config-2"
