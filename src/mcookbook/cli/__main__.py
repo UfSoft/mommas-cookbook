@@ -9,12 +9,15 @@ import multiprocessing
 import pathlib
 import sys
 import traceback
+from typing import cast
 
 from pydantic import ValidationError
 
-from mcookbook import __version__  # type: ignore[attr-defined]
+from mcookbook import __version__
 from mcookbook.cli import live
+from mcookbook.cli import notebook
 from mcookbook.config.live import LiveConfig
+from mcookbook.config.notebook import NotebookConfig
 from mcookbook.exceptions import MCookBookSystemExit
 from mcookbook.utils.logs import setup_cli_logging
 from mcookbook.utils.logs import setup_logfile_logging
@@ -74,9 +77,11 @@ def main(argv: list[str] | None = None) -> None:
     )
     subparsers = parser.add_subparsers(title="Commands", dest="subparser")
     live_parser = subparsers.add_parser("live", help="Run Live")
+    notebook_parser = subparsers.add_parser("notebook", help="Run a provided jupyter notebook")
 
     # Setup each sub-parser
     live.setup_parser(live_parser)
+    notebook.setup_parser(notebook_parser)
 
     # Parse the CLI arguments
     args: argparse.Namespace = parser.parse_args(args=argv)
@@ -102,14 +107,17 @@ def main(argv: list[str] | None = None) -> None:
             )
         args.config_files.append(default_config_file)
 
+    config: LiveConfig | NotebookConfig
     try:
         if args.subparser == "live":
             config = LiveConfig.parse_files(*args.config_files)
+        elif args.subparser == "notebook":
+            config = NotebookConfig.parse_files(*args.config_files)
         else:
             parser.exit(
                 status=1,
                 message=(
-                    f"Don't know what to do regarding subparser {args.subparser}. Please fix this "
+                    f"Don't know what to do regarding subparser '{args.subparser}'. Please fix this "
                     "or file a bug report."
                 ),
             )
@@ -144,6 +152,15 @@ def main(argv: list[str] | None = None) -> None:
 
     # Set the configuration private attributes
     config._basedir = args.basedir  # pylint: disable=protected-access
+
+    try:
+        if args.subparser == "live":
+            live.post_process_argparse_parsed_args(parser, args, cast(LiveConfig, config))
+        elif args.subparser == "notebook":
+            notebook.post_process_argparse_parsed_args(parser, args, cast(NotebookConfig, config))
+    except AttributeError:
+        # process_argparse_parsed_args was not implemented
+        pass
 
     try:
         args.func(config)

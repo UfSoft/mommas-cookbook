@@ -59,3 +59,11 @@ def setup_parser(parser: argparse.ArgumentParser) -> None:
     Setup the sub-parser.
     """
     parser.set_defaults(func=main)
+
+
+def post_process_argparse_parsed_args(
+    parser: argparse.ArgumentParser, args: argparse.Namespace, config: LiveConfig
+) -> None:
+    """
+    Post process the parser arguments after the configuration files have been loaded.
+    """

@@ -52,7 +52,7 @@ class Exchange(BaseModel):
             subclass_name = subclass._name  # pylint: disable=protected-access
             subclass_market = subclass._market  # pylint: disable=protected-access
             if subclass_name == name and market == subclass_market:
-                instance = subclass.parse_obj({"config": config})
+                instance = subclass.parse_obj({"config": config.dict()})
                 instance._pairlist_manager = PairListManager.construct(config=config)
                 instance._pairlist_manager._exchange = instance
                 for handler in config.pairlists:

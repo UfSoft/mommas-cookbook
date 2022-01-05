@@ -48,12 +48,14 @@ class BaseConfig(BaseModel):
     _basedir: pathlib.Path = PrivateAttr()
 
     @classmethod
-    def parse_files(cls: type[BaseConfigType], *files: pathlib.Path) -> BaseConfigType:
+    def parse_files(cls: type[BaseConfigType], *files: pathlib.Path | str) -> BaseConfigType:
         """
         Helper class method to load the configuration from multiple files.
         """
         config_dicts: list[dict[str, Any]] = []
         for file in files:
+            if not isinstance(file, pathlib.Path):
+                file = pathlib.Path(file)
             config_dicts.append(json.loads(file.read_text()))
         config = config_dicts.pop(0)
         if config_dicts:
