@@ -10,6 +10,7 @@ import ccxt.async_support
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import PrivateAttr
+from pydantic import SecretStr
 from pydantic import validator
 
 
@@ -20,10 +21,10 @@ class ExchangeConfig(BaseModel):
 
     name: str
     market: str = "future"
-    key: str = Field(..., exclude=True)
-    secret: str = Field(..., exclude=True)
-    password: Optional[str] = Field(None, exclude=True)
-    uid: Optional[str] = Field(None, exclude=True)
+    key: Optional[SecretStr] = None
+    secret: Optional[SecretStr] = None
+    password: Optional[SecretStr] = None
+    uid: Optional[SecretStr] = None
     cctx_config: dict[str, Any] = Field(default_factory=dict)
     pair_allow_list: list[str] = Field(default_factory=list)
     pair_block_list: list[str] = Field(default_factory=list)

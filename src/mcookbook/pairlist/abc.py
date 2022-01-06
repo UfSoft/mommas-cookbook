@@ -37,6 +37,15 @@ class PairList(BaseModel):
     refresh_period: int = Field(default=1800, ge=0)
 
     @classmethod
+    def construct(cls, _fields_set: set[str] | None = None, **values: Any) -> PairList:
+        """
+        Construct a new class instance.
+        """
+        if "name" not in values:
+            values["name"] = cls.__name__
+        return super().construct(_fields_set=_fields_set, **values)
+
+    @classmethod
     def resolved(cls, config: dict[str, Any]) -> PairList:
         """
         Resolve the passed ``name`` to class implementation.

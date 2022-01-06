@@ -16,7 +16,6 @@ from mcookbook.config.live import LiveConfig
 from mcookbook.exceptions import OperationalException
 from mcookbook.pairlist.manager import PairListManager
 from mcookbook.utils import merge_dictionaries
-from mcookbook.utils import sanitize_dictionary
 
 log = logging.getLogger(__name__)
 
@@ -79,14 +78,16 @@ class Exchange(BaseModel):
             headers = self._get_ccxt_headers()  # pylint: disable=assignment-from-none
             if headers:
                 merge_dictionaries(ccxt_config, {"headers": headers})
-            sanitized_ccxt_config = sanitize_dictionary(
-                ccxt_config, ("apiKey", "secret", "password", "uid")
-            )
             log.info(
                 "Instantiating API for the '%s' exchange with the following configuration:\n%s",
                 self.config.exchange.name,
-                pprint.pformat(sanitized_ccxt_config),
+                pprint.pformat(ccxt_config),
             )
+            # Reveal secrets
+            for key in ("apiKey", "secret", "password", "uid"):
+                if key not in ccxt_config:
+                    continue
+                ccxt_config[key] = ccxt_config[key].get_secret_value()
             try:
                 self._api = getattr(ccxt.async_support, self.config.exchange.name)(ccxt_config)
             except (KeyError, AttributeError) as exc:

@@ -136,3 +136,6 @@ artifacts/
 
 # Ignore the setuptools_scm generated version file
 src/mcookbook/version.py
+
+# Ignore the default runtime base directory
+runtime/

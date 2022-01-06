@@ -16,9 +16,11 @@ from pydantic import ValidationError
 from mcookbook import __version__
 from mcookbook.cli import live
 from mcookbook.cli import notebook
+from mcookbook.config.exchange import ExchangeConfig
 from mcookbook.config.live import LiveConfig
 from mcookbook.config.notebook import NotebookConfig
 from mcookbook.exceptions import MCookBookSystemExit
+from mcookbook.pairlist.static import StaticPairList
 from mcookbook.utils.logs import setup_cli_logging
 from mcookbook.utils.logs import setup_logfile_logging
 from mcookbook.utils.logs import SORTED_LEVEL_NAMES
@@ -36,12 +38,24 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     config_section = parser.add_argument_group(title="Configuration Paths")
     config_section.add_argument(
+        "--bd",
         "--basedir",
         type=pathlib.Path,
         default=None,
+        dest="basedir",
         help=(
             "The base directory where all paths will be computed from. "
             "Defaults to the current directory"
+        ),
+    )
+    config_section.add_argument(
+        "--grdl",
+        "--generate-runtime-directory-layout",
+        dest="generate_runtime_directory_layout",
+        type=pathlib.Path,
+        help=(
+            "Generate the runtime directory structure, including default, and empty, configuration file "
+            "for the provided path."
         ),
     )
     config_section.add_argument(
@@ -54,7 +68,8 @@ def main(argv: list[str] | None = None) -> None:
         action="append",
         help=(
             "Path to configuration file. Can be passed multiple times, but the last configuration file "
-            "will be merged into the previous one, and so forth, overriding the previously defined values."
+            "will be merged into the previous one, and so forth, overriding the previously defined values. "
+            "Default: <current-directory>/runtime/default.json"
         ),
     )
     cli_logging_params = parser.add_argument_group(
@@ -86,23 +101,56 @@ def main(argv: list[str] | None = None) -> None:
     # Parse the CLI arguments
     args: argparse.Namespace = parser.parse_args(args=argv)
 
+    if args.generate_runtime_directory_layout is not None:
+        setup_cli_logging(log_level=args.log_level or "info")
+        basedir: pathlib.Path = args.generate_runtime_directory_layout
+        basedir.mkdir(exist_ok=True, parents=True, mode=0o750)
+        log.info("Created directory: %s", basedir)
+        default_config = LiveConfig.construct(
+            exchange=ExchangeConfig.construct(
+                name="CHANGE_ME",
+                pair_allow_list=[
+                    "BTC/USDT",
+                ],
+            ),
+            pairlists=[
+                StaticPairList.construct(),
+            ],
+        )
+        default_config_contents = default_config.json(
+            indent=2,
+            exclude={"logging": ...},
+        )
+        default_config_file = basedir / "default.json"
+        if default_config_file.exists():
+            response = input(f"The file {default_config_file} already exists. Overwrite? [N/y] ")
+            if response.lower() not in ("y", "ye", "yes"):
+                parser.exit(1)
+        log.info("Writing %s with contents:\n%s", default_config_file, default_config_contents)
+        default_config_file.write_text(default_config_contents)
+        parser.exit(
+            status=0, message=f"Runtime directory structure created at {basedir.resolve()}\n"
+        )
+
     if args.basedir is not None:
         args.basedir = args.basedir.resolve()
     else:
-        args.basedir = pathlib.Path.cwd()
+        args.basedir = pathlib.Path.cwd() / "runtime"
 
     for config_file in list(args.config_files):
         if not config_file.exists():
             log.warning("Config file %s does not exist", config_file)
             args.config_files.remove(config_file)
 
-    if not args.config_files:
-        default_config_file = args.basedir / "configs" / "live" / "default.json"
+    if not args.config_files and args.basedir:
+        default_config_file = args.basedir / "default.json"
         if not default_config_file.exists():
             parser.exit(
                 status=1,
                 message=(
-                    f"Please pass '--config=<path/to/config.json>' at least once or create {default_config_file}"
+                    "Please pass '--config=<path/to/config.json>' at least once or "
+                    "--grdl/--generate-runtime-directory-layout <path/to/directory> "
+                    "to create the initial directory structure and default config file."
                 ),
             )
         args.config_files.append(default_config_file)
