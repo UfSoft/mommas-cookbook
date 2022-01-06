@@ -14,6 +14,14 @@ from pydantic import SecretStr
 from pydantic import validator
 
 
+class CCXTConfig(BaseModel):
+    """
+    Default CCXT configuration.
+    """
+
+    enableRateLimit: bool = True
+
+
 class ExchangeConfig(BaseModel):
     """
     Exchange configuration model.
@@ -25,7 +33,7 @@ class ExchangeConfig(BaseModel):
     secret: Optional[SecretStr] = None
     password: Optional[SecretStr] = None
     uid: Optional[SecretStr] = None
-    cctx_config: dict[str, Any] = Field(default_factory=dict)
+    cctx_config: CCXTConfig = CCXTConfig()
     pair_allow_list: list[str] = Field(default_factory=list)
     pair_block_list: list[str] = Field(default_factory=list)
 

@@ -38,7 +38,7 @@ class Exchange(BaseModel):
         return None
 
     def _get_ccxt_config(self) -> dict[str, Any] | None:
-        return {"enableRateLimit": True}
+        return None
 
     @classmethod
     def resolved(cls, config: LiveConfig) -> Exchange:
