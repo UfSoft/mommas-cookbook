@@ -16,6 +16,7 @@ class NotebookConfig(BaseConfig):
     Notebook configuration schema.
     """
 
+    keep_temp_notebook: bool = False
     _notebook: str = PrivateAttr()
     _config_files: list[pathlib.Path] = PrivateAttr()
 
