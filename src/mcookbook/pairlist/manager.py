@@ -92,11 +92,7 @@ class PairListManager(BaseModel):
         """
         Verify and remove items from pairlist - returning a filtered pairlist.
 
-        Logs a warning or info depending on `aswarning`.
-        Pairlist Handlers explicitly using this method shall use
-        `logmethod=logger.info` to avoid spamming with warning messages
         :param pairlist: Pairlist to validate
-        :param logmethod: Function that'll be called, `logger.info` or `logger.warning`.
         :return: pairlist - blacklisted pairs
         """
         try:
@@ -114,11 +110,7 @@ class PairListManager(BaseModel):
         """
         Verify and remove items from pairlist - returning a filtered pairlist.
 
-        Logs a warning or info depending on `aswarning`.
-        Pairlist Handlers explicitly using this method shall use
-        `logmethod=logger.info` to avoid spamming with warning messages
         :param pairlist: Pairlist to validate
-        :param logmethod: Function that'll be called, `logger.info` or `logger.warning`
         :param keep_invalid: If sets to True, drops invalid pairs silently while expanding regexes.
         :return: pairlist - whitelisted pairs
         """

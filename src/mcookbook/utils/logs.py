@@ -61,8 +61,11 @@ class TTLFilter(logging.Filter):
             maxsize=10000, ttu=self._calculate_cache_time_to_use, timer=datetime.now
         )
 
-    def _calculate_cache_time_to_use(
-        self, key: int, record: logging.LogRecord, now: datetime
+    def _calculate_cache_time_to_use(  # pylint: disable=unused-argument
+        self,
+        key: int,
+        record: logging.LogRecord,
+        now: datetime,
     ) -> datetime:
         return now + timedelta(seconds=cast(LogRecord, record).once_every_secs)
 

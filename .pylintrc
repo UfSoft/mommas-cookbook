@@ -69,7 +69,8 @@ disable=R, # R* [refactoring suggestions & reports]
   missing-class-docstring,
   missing-function-docstring,
   # Pyupgrade will convert to f-strings when possible
-  consider-using-f-string
+  consider-using-f-string,
+  protected-access
 
 
 [REPORTS]

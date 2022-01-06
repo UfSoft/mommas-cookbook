@@ -130,10 +130,10 @@ class PairList(BaseModel):
         """
         if self._enabled:
             # Copy list since we're modifying this list
-            for p in copy.deepcopy(pairlist):
+            for pair in copy.deepcopy(pairlist):
                 # Filter out assets
-                if not self._validate_pair(p, tickers[p] if p in tickers else {}):
-                    pairlist.remove(p)
+                if not self._validate_pair(pair, tickers[pair] if pair in tickers else {}):
+                    pairlist.remove(pair)
 
         return pairlist
 
@@ -142,7 +142,6 @@ class PairList(BaseModel):
         Proxy method to verify_blacklist for easy access for child classes.
 
         :param pairlist: Pairlist to validate
-        :param logmethod: Function that'll be called, `logger.info` or `logger.warning`.
         :return: pairlist - blacklisted pairs
         """
         return self.pairlist_manager.verify_blacklist(pairlist)
@@ -152,7 +151,6 @@ class PairList(BaseModel):
         Proxy method to verify_whitelist for easy access for child classes.
 
         :param pairlist: Pairlist to validate
-        :param logmethod: Function that'll be called, `logger.info` or `logger.warning`
         :param keep_invalid: If sets to True, drops invalid pairs silently while expanding regexes.
         :return: pairlist - whitelisted pairs
         """

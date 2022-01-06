@@ -60,7 +60,7 @@ def expand_pairlist(
                 # If there are no matching pairs (Pair not on exchange) keep it.
                 result += result_partial or [pair_wc]
             except re.error as err:
-                raise ValueError(f"Wildcard error in {pair_wc}, {err}")
+                raise ValueError(f"Wildcard error in {pair_wc}, {err}") from err
 
         for element in result:
             if not re.fullmatch(r"^[A-Za-z0-9/-]+$", element):
@@ -71,5 +71,5 @@ def expand_pairlist(
                 comp = re.compile(pair_wc, re.IGNORECASE)
                 result += [pair for pair in available_pairs if re.fullmatch(comp, pair)]
             except re.error as err:
-                raise ValueError(f"Wildcard error in {pair_wc}, {err}")
+                raise ValueError(f"Wildcard error in {pair_wc}, {err}") from err
     return result

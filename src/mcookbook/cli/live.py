@@ -24,7 +24,7 @@ class LiveService(CLIService):
         """
         Routines to run the service.
         """
-        assert self.exchange.api  # Load cctx api
+        assert self.exchange.api  # Load ccxt api
         await self.exchange.get_markets()
         await self.exchange.pairlist_manager.refresh_pairlist()
         while True:
@@ -61,8 +61,10 @@ def setup_parser(parser: argparse.ArgumentParser) -> None:
     parser.set_defaults(func=main)
 
 
-def post_process_argparse_parsed_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace, config: LiveConfig
+def post_process_argparse_parsed_args(  # pylint: disable=unused-argument
+    parser: argparse.ArgumentParser,
+    args: argparse.Namespace,
+    config: LiveConfig,
 ) -> None:
     """
     Post process the parser arguments after the configuration files have been loaded.

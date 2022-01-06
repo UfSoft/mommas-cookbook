@@ -11,7 +11,7 @@ from pydantic import Field
 from mcookbook.pairlist.abc import PairList
 
 
-class StaticPairList(PairList):
+class StaticPairList(PairList):  # pylint: disable=abstract-method
     """
     Static pair list handler.
     """
