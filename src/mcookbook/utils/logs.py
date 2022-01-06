@@ -8,12 +8,17 @@ import pathlib
 import sys
 from collections import deque
 from collections.abc import Mapping
+from datetime import datetime
+from datetime import timedelta
 from logging import handlers
 from types import TracebackType
+from typing import Any
 from typing import cast
 from typing import Deque
 from typing import TYPE_CHECKING
 from typing import Union
+
+from cachetools import TLRUCache  # type: ignore[attr-defined]
 
 
 LOG_LEVELS = {
@@ -32,8 +37,8 @@ logging.root.setLevel(logging.DEBUG)
 # Store an instance of the current logging logger class
 LOGGING_LOGGER_CLASS: type[logging.Logger] = logging.getLoggerClass()
 
-_ArgsType = Union[tuple[object, ...], Mapping[str, object]]  # type: ignore[misc]
-_SysExcInfoType = Union[tuple[type, BaseException, TracebackType], tuple[None, None, None]]  # type: ignore[misc]
+_ArgsType = Union[tuple[object, ...], Mapping[str, object]]
+_SysExcInfoType = Union[tuple[type, BaseException, TracebackType], tuple[None, None, None]]
 
 
 class LogRecord(logging.LogRecord):
@@ -42,6 +47,71 @@ class LogRecord(logging.LogRecord):
     """
 
     wipe_line: bool
+    once_every_secs: int = 0
+
+
+class TTLFilter(logging.Filter):
+    """
+    TTL filter in order not to spam logging it the log record has the ``once_every_secs`` attribute set.
+    """
+
+    def __init__(self, name: str = "") -> None:
+        super().__init__(name=name)
+        self._cache = TLRUCache(
+            maxsize=10000, ttu=self._calculate_cache_time_to_use, timer=datetime.now
+        )
+
+    def _calculate_cache_time_to_use(
+        self, key: int, record: logging.LogRecord, now: datetime
+    ) -> datetime:
+        return now + timedelta(seconds=cast(LogRecord, record).once_every_secs)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """
+        Determine if the specified record is to be logged.
+
+        Returns True if the record should be logged, or False otherwise.
+        If deemed appropriate, the record may be modified in-place.
+        """
+        try:
+            if not super().filter(record):
+                # Record should be filtered
+                return False
+
+            # Don't cache debug or lower log messages
+            if record.levelno <= logging.DEBUG:
+                return True
+
+            # Should we consider caching the log record
+            if not cast(LogRecord, record).once_every_secs:
+                # No, just log it
+                return True
+
+            # Construct a cache key, based on specific log record attributes
+            interesting_keys = (
+                "name",
+                "msg",
+                "args",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "lineno",
+                "funcName",
+            )
+            record_hash_tuple = ((key, getattr(record, key)) for key in interesting_keys)
+            record_hash = hash(record_hash_tuple)
+            if record_hash in self._cache:
+                # Log record already in cache, don't log it again
+                return False
+
+            # First time seeing this log record, add it to cache
+            self._cache[record_hash] = record
+            # Log it
+            return True
+        finally:
+            # Cleanup expired cached entries
+            self._cache.expire()
 
 
 class TemporaryLoggingHandler(logging.NullHandler):
@@ -143,6 +213,10 @@ class MCookBookLoggingClass(LOGGING_LOGGER_CLASS):  # type: ignore[valid-type,mi
     Custom logging logger class implementation.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.addFilter(TTLFilter())
+
     def _log(
         self,
         level: int,
@@ -153,11 +227,13 @@ class MCookBookLoggingClass(LOGGING_LOGGER_CLASS):  # type: ignore[valid-type,mi
         stack_info: bool = False,
         stacklevel: int = 1,
         wipe_line: bool = False,
+        once_every_secs: int = 0,
     ) -> None:
         if extra is None:
             extra = {}
 
         extra["wipe_line"] = wipe_line
+        extra["once_every_secs"] = once_every_secs
 
         super()._log(
             level,
@@ -189,6 +265,8 @@ class MCookBookLoggingClass(LOGGING_LOGGER_CLASS):  # type: ignore[valid-type,mi
             assert extra
         # Let's remove wipe_line from extra
         wipe_line = extra.pop("wipe_line")
+        # Let's remove once_every_secs from extra
+        once_every_secs = extra.pop("once_every_secs")
 
         if not extra:
             # If nothing else is in extra, make it None
@@ -207,6 +285,7 @@ class MCookBookLoggingClass(LOGGING_LOGGER_CLASS):  # type: ignore[valid-type,mi
             sinfo=sinfo,
         )
         setattr(logrecord, "wipe_line", wipe_line)
+        setattr(logrecord, "once_every_secs", once_every_secs)
         return logrecord
 
 
