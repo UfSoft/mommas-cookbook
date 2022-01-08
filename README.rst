@@ -29,7 +29,7 @@
 What is Momma's CookBook
 ========================
 
-TBD
+Mommas cookbook is heavily inspired both in the user experience and code of `Freqtrade`_ and `Passivbot`_.
 
 Install
 =======
@@ -69,6 +69,8 @@ The mommas-cookbook project team welcomes contributions from the community.
 For more detailed information, refer to `CONTRIBUTING`_.
 
 .. _CONTRIBUTING: https://github.com/UfSoft/mommas-cookbook/blob/main/CONTRIBUTING.md
+.. _Freqtrade: https://www.freqtrade.io
+.. _Passivbot: https://www.passivbot.com
 
 ..
    include-ends-here
