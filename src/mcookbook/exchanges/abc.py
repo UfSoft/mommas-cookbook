@@ -3,21 +3,32 @@ Base exchange class implementation.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import pprint
+from datetime import timedelta
 from typing import Any
 
 import ccxt
 from ccxt.async_support import Exchange as CCXTExchange
+from polars import DataFrame
 from pydantic import BaseModel
 from pydantic import PrivateAttr
 
 from mcookbook.config.live import LiveConfig
 from mcookbook.exceptions import OperationalException
 from mcookbook.pairlist.manager import PairListManager
+from mcookbook.utils import chunks
 from mcookbook.utils import merge_dictionaries
+from mcookbook.utils import timeframe_to_msecs
+from mcookbook.utils import timeframe_to_next_date
+from mcookbook.utils.data import ohlcv_to_dataframe
 
 log = logging.getLogger(__name__)
+
+PairWithTimeframe = tuple[str, str]
+ListPairsWithTimeframes = list[PairWithTimeframe]
+OhlcvDict = dict[tuple[str, str], DataFrame]
 
 
 class Exchange(BaseModel):
@@ -33,6 +44,7 @@ class Exchange(BaseModel):
     _api: type[CCXTExchange] = PrivateAttr()
     _markets: dict[str, dict[str, Any]] = PrivateAttr(default_factory=dict)
     _pairlist_manager: PairListManager = PrivateAttr()
+    _klines: dict[tuple[str, str], DataFrame] = PrivateAttr(default_factory=dict)
 
     def _get_ccxt_headers(self) -> dict[str, str] | None:
         return None
@@ -120,3 +132,90 @@ class Exchange(BaseModel):
         Return the pair list manager.
         """
         return self._pairlist_manager
+
+    async def refresh_latest_ohlcv(
+        self,
+        pair_list: ListPairsWithTimeframes,
+        *,
+        since_ms: int | None = None,
+        cache: bool = True,
+    ) -> OhlcvDict:
+        """
+        Refresh in-memory OHLCV asynchronously and set `_klines` with the result
+        Loops asynchronously over pair_list and downloads all pairs async (semi-parallel).
+        Only used in the dataprovider.refresh() method.
+        :param pair_list: List of 2 element tuples containing pair, interval to refresh
+        :param since_ms: time since when to download, in milliseconds
+        :param cache: Assign result to _klines. Usefull for one-off downloads like for pairlists
+        :return: Dict of [{(pair, timeframe): Dataframe}]
+        """
+        log.debug("Refreshing candle (OHLCV) data for %d pairs", len(pair_list))
+
+        input_coroutines = []
+        cached_pairs = []
+        # Gather coroutines to run
+        for pair, timeframe in set(pair_list):
+            if (
+                (pair, timeframe) not in self._klines
+                or not cache
+                or self._now_is_time_to_refresh(pair, timeframe)
+            ):
+                if not since_ms and self.required_candle_call_count > 1:
+                    # Multiple calls for one pair - to get more history
+                    one_call = timeframe_to_msecs(timeframe) * self.ohlcv_candle_limit(timeframe)
+                    move_to = one_call * self.required_candle_call_count
+                    now = timeframe_to_next_date(timeframe)
+                    since_ms = int((now - timedelta(seconds=move_to // 1000)).timestamp() * 1000)
+
+                if since_ms:
+                    input_coroutines.append(
+                        self._async_get_historic_ohlcv(
+                            pair, timeframe, since_ms=since_ms, raise_=True
+                        )
+                    )
+                else:
+                    # One call ... "regular" refresh
+                    input_coroutines.append(
+                        self._async_get_candle_history(pair, timeframe, since_ms=since_ms)
+                    )
+            else:
+                log.debug(
+                    "Using cached candle (OHLCV) data for pair %s, timeframe %s ...",
+                    pair,
+                    timeframe,
+                )
+                cached_pairs.append((pair, timeframe))
+
+        results_df = {}
+        # Chunk requests into batches of 100 to avoid overwelming ccxt Throttling
+        for input_coro in chunks(input_coroutines, 100):
+
+            results = await asyncio.gather(*input_coro, return_exceptions=True)
+
+            # handle caching
+            for res in results:
+                if isinstance(res, Exception):
+                    log.warning("Async code raised an exception: %r", res)
+                    continue
+                # Deconstruct tuple (has 3 elements)
+                pair, timeframe, ticks = res
+                # keeping last candle time as last refreshed time of the pair
+                if ticks:
+                    self._pairs_last_refresh_time[(pair, timeframe)] = ticks[-1][0] // 1000
+                # keeping parsed dataframe in cache
+                ohlcv_df = ohlcv_to_dataframe(
+                    ticks,
+                    timeframe,
+                    pair=pair,
+                    fill_missing=True,
+                    drop_incomplete=self._ohlcv_partial_candle,
+                )
+                results_df[(pair, timeframe)] = ohlcv_df
+                if cache:
+                    self._klines[(pair, timeframe)] = ohlcv_df
+
+        # Return cached klines
+        for pair, timeframe in cached_pairs:
+            results_df[(pair, timeframe)] = self.klines((pair, timeframe), copy=False)
+
+        return results_df
