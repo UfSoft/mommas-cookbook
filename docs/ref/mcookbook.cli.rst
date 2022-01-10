@@ -17,10 +17,18 @@ mcookbook.cli.abc module
    :undoc-members:
    :show-inheritance:
 
-mcookbook.cli.live module
--------------------------
+mcookbook.cli.notebook module
+-----------------------------
 
-.. automodule:: mcookbook.cli.live
+.. automodule:: mcookbook.cli.notebook
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcookbook.cli.trade module
+--------------------------
+
+.. automodule:: mcookbook.cli.trade
    :members:
    :undoc-members:
    :show-inheritance:

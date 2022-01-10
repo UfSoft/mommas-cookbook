@@ -6,7 +6,7 @@ from __future__ import annotations
 from mcookbook.config.base import BaseConfig
 
 
-class LiveConfig(BaseConfig):
+class TradeConfig(BaseConfig):
     """
-    Live configuration schema.
+    Live trading configuration schema.
     """

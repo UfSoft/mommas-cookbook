@@ -6,10 +6,10 @@ from __future__ import annotations
 from typing import Any
 from typing import Optional
 
+import attrs
 import ccxt.async_support
 from pydantic import BaseModel
 from pydantic import Field
-from pydantic import PrivateAttr
 from pydantic import SecretStr
 from pydantic import validator
 
@@ -36,8 +36,7 @@ class ExchangeConfig(BaseModel):
     cctx_config: CCXTConfig = CCXTConfig()
     pair_allow_list: list[str] = Field(default_factory=list)
     pair_block_list: list[str] = Field(default_factory=list)
-
-    _cctx = PrivateAttr()
+    required_candle_call_count: int = Field(default=60)
 
     @validator("name")
     @classmethod
@@ -50,7 +49,8 @@ class ExchangeConfig(BaseModel):
         if value not in ccxt_exchanges:
             raise ValueError(f"The exchange {value!r} is not supported by CCXT.")
         supported_exchanges: list[str] = [
-            ex._name for ex in Exchange.__subclasses__()  # pylint: disable=protected-access
+            attrs.fields(ex).name.default
+            for ex in Exchange.__subclasses__()  # pylint: disable=protected-access
         ]
         if value not in supported_exchanges:
             raise ValueError(

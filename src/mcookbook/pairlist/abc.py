@@ -1,6 +1,7 @@
 """
 PairList base class.
 """
+# pylint: disable=no-member,not-an-iterable,unsubscriptable-object
 from __future__ import annotations
 
 import copy
@@ -8,77 +9,42 @@ import logging
 from typing import Any
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
-from pydantic import Field
-from pydantic import PrivateAttr
+import attrs
 
 from mcookbook.exceptions import OperationalException
 from mcookbook.pairlist.manager import PairListManager
 
-if TYPE_CHECKING:
-    from mcookbook.config.live import LiveConfig
-    from mcookbook.exchanges.abc import Exchange
-
 
 log = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from mcookbook.config.exchange import ExchangeConfig
+    from mcookbook.config.pairlist import PairListConfig
+    from mcookbook.exchanges.abc import Exchange
+    from mcookbook.utils.ccxt import CCXTExchange
 
-class PairList(BaseModel):
+
+@attrs.define(kw_only=True)
+class PairList:
     """
     Base pair list implementation.
     """
 
-    _enabled: bool = PrivateAttr(default=True)
-    _position: int = PrivateAttr(default=0)
-    _last_refresh: int = PrivateAttr(default=0)
-    _exchange: Exchange = PrivateAttr()
+    name: str = attrs.field()
+    config: PairListConfig = attrs.field()
+    exchange: Exchange = attrs.field()
+    ccxt_conn: CCXTExchange = attrs.field()
+    pairlist_manager: PairListManager = attrs.field()
 
-    name: str
-    refresh_period: int = Field(default=1800, ge=0)
-
-    @classmethod
-    def construct(cls, _fields_set: set[str] | None = None, **values: Any) -> PairList:
-        """
-        Construct a new class instance.
-        """
-        if "name" not in values:
-            values["name"] = cls.__name__
-        return super().construct(_fields_set=_fields_set, **values)
-
-    @classmethod
-    def resolved(cls, config: dict[str, Any]) -> PairList:
-        """
-        Resolve the passed ``name`` to class implementation.
-        """
-        if "name" not in config:
-            raise ValueError("The 'name' key is missing.")
-        for subclass in cls.__subclasses__():
-            subclass_name = subclass.__name__  # pylint: disable=protected-access
-            if subclass_name == config["name"]:
-                return subclass.parse_obj(config)
-        raise OperationalException("Cloud not find an {config['name']} pair list implementation.")
+    _position: int = attrs.field(default=0, repr=False)
+    _last_refresh: int = attrs.field(default=0, repr=False)
 
     @property
-    def exchange(self) -> Exchange:
+    def exchange_config(self) -> ExchangeConfig:
         """
-        Return the exchange class instance.
+        Return the exchange configuration.
         """
-        return self._exchange
-
-    @property
-    def config(self) -> LiveConfig:
-        """
-        Return the loaded configuration.
-        """
-        return self._exchange.config
-
-    @property
-    def pairlist_manager(self) -> PairListManager:
-        """
-        Return the pair list manager.
-        """
-        manager: PairListManager = self._exchange.pairlist_manager
-        return manager
+        return self.exchange.config.exchange
 
     @property
     def needstickers(self) -> bool:
@@ -90,7 +56,9 @@ class PairList(BaseModel):
         """
         return False
 
-    def _validate_pair(self, pair: str, ticker: dict[str, Any]) -> bool:
+    def _validate_pair(
+        self, pair: str, ticker: dict[str, Any]  # pylint: disable=unused-argument
+    ) -> bool:
         """
         Check one pair against Pairlist Handler's specific conditions.
 
@@ -101,9 +69,9 @@ class PairList(BaseModel):
         :param ticker: ticker dict as returned from ccxt.fetch_tickers()
         :return: True if the pair can stay, false if it should be removed
         """
-        raise NotImplementedError()
+        return True
 
-    def gen_pairlist(self, tickers: dict[str, Any]) -> list[str]:
+    async def gen_pairlist(self, tickers: dict[str, Any]) -> list[str]:
         """
         Generate the pairlist.
 
@@ -122,9 +90,9 @@ class PairList(BaseModel):
             "at the first position in the list of Pairlist Handlers."
         )
 
-    def filter_pairlist(self, pairlist: list[str], tickers: dict[str, Any]) -> list[str]:
+    async def filter_pairlist(self, pairlist: list[str], tickers: dict[str, Any]) -> list[str]:
         """
-        Filters and sorts pairlist and returns the whitelist again.
+        Filters and sorts pairlist and returns the allow_list again.
 
         Called on each bot iteration - please use internal caching if necessary
         This generic implementation calls self._validate_pair() for each pair
@@ -135,79 +103,78 @@ class PairList(BaseModel):
 
         :param pairlist: pairlist to filter or sort
         :param tickers: Tickers (from exchange.get_tickers()). May be cached.
-        :return: new whitelist
+        :return: new allow_list
         """
-        if self._enabled:
-            # Copy list since we're modifying this list
-            for pair in copy.deepcopy(pairlist):
-                # Filter out assets
-                if not self._validate_pair(pair, tickers[pair] if pair in tickers else {}):
-                    pairlist.remove(pair)
+        # Copy list since we're modifying this list
+        for pair in copy.deepcopy(pairlist):
+            # Filter out assets
+            if not self._validate_pair(pair, tickers[pair] if pair in tickers else {}):
+                pairlist.remove(pair)
 
         return pairlist
 
-    def verify_blacklist(self, pairlist: list[str]) -> list[str]:
+    def verify_block_list(self, pairlist: list[str]) -> list[str]:
         """
-        Proxy method to verify_blacklist for easy access for child classes.
+        Proxy method to verify_block_list for easy access for child classes.
 
         :param pairlist: Pairlist to validate
-        :return: pairlist - blacklisted pairs
+        :return: pairlist - block_listed pairs
         """
-        return self.pairlist_manager.verify_blacklist(pairlist)
+        return self.pairlist_manager.verify_block_list(pairlist)
 
-    def verify_whitelist(self, pairlist: list[str], keep_invalid: bool = False) -> list[str]:
+    def verify_allow_list(self, pairlist: list[str], keep_invalid: bool = False) -> list[str]:
         """
-        Proxy method to verify_whitelist for easy access for child classes.
+        Proxy method to verify_allow_list for easy access for child classes.
 
         :param pairlist: Pairlist to validate
         :param keep_invalid: If sets to True, drops invalid pairs silently while expanding regexes.
-        :return: pairlist - whitelisted pairs
+        :return: pairlist - allow_listed pairs
         """
-        return self.pairlist_manager.verify_whitelist(pairlist, keep_invalid)
+        return self.pairlist_manager.verify_allow_list(pairlist, keep_invalid)
 
-    def _whitelist_for_active_markets(self, pairlist: list[str]) -> list[str]:
+    def _allow_list_for_active_markets(self, pairlist: list[str]) -> list[str]:
         """
-        Check available markets and remove pair from whitelist if necessary.
+        Check available markets and remove pair from allow_list if necessary.
 
         :param pairlist: the sorted list of pairs the user might want to trade
         :return: the list of pairs the user wants to trade without those unavailable or
         black_listed
         """
-        markets = self.exchange.api.markets
+        markets = self.ccxt_conn.markets
         if not markets:
             raise OperationalException(
                 "Markets not loaded. Make sure that exchange is initialized correctly."
             )
 
-        sanitized_whitelist: list[str] = []
+        sanitized_allow_list: list[str] = []
         for pair in pairlist:
             # pair is not in the generated dynamic market or has the wrong stake currency
             if pair not in markets:
                 log.warning(
-                    "Pair '%s' is not compatible with exchange %s Removing it from whitelist..",
+                    "Pair '%s' is not compatible with exchange %s Removing it from allow_list..",
                     pair,
-                    self.config.exchange.name,
+                    self.exchange.name,
                 )
                 continue
 
             #            if not self._exchange.market_is_tradable(markets[pair]):
             #                self.log_once(f"Pair {pair} is not tradable with Freqtrade."
-            #                              "Removing it from whitelist..", logger.warning)
+            #                              "Removing it from allow_list..", logger.warning)
             #                continue
             #
             #            if self._exchange.get_pair_quote_currency(pair) != self._config['stake_currency']:
             #                self.log_once(f"Pair {pair} is not compatible with your stake currency "
-            #                              f"{self._config['stake_currency']}. Removing it from whitelist..",
+            #                              f"{self._config['stake_currency']}. Removing it from allow_list..",
             #                              logger.warning)
             #                continue
 
             #            # Check if market is active
             #            market = markets[pair]
             #            if not market_is_active(market):
-            #                self.log_once(f"Ignoring {pair} from whitelist. Market is not active.", logger.info)
+            #                self.log_once(f"Ignoring {pair} from allow_list. Market is not active.", logger.info)
             #                continue
-            if pair not in sanitized_whitelist:
-                sanitized_whitelist.append(pair)
+            if pair not in sanitized_allow_list:
+                sanitized_allow_list.append(pair)
 
         # We need to remove pairs that are unknown
-        return sanitized_whitelist
+        return sanitized_allow_list

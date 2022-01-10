@@ -5,18 +5,26 @@ from __future__ import annotations
 
 from typing import Any
 
+import attrs
+
 from mcookbook.exchanges.abc import Exchange
-from mcookbook.utils import merge_dictionaries
 
 
+@attrs.define(kw_only=True)
 class BinanceFutures(Exchange):
     """
     Binance futures exchange implementation.
     """
 
-    _name: str = "binance"
-    _market: str = "future"
+    name = attrs.field(default="binance", on_setattr=attrs.setters.frozen)
+    market = attrs.field(default="future", on_setattr=attrs.setters.frozen)
 
-    def _get_ccxt_config(self) -> dict[str, Any]:
-        ccxt_config = super()._get_ccxt_config() or {}
-        return merge_dictionaries(ccxt_config, {"options": {"defaultType": self._market}})
+    @staticmethod
+    def get_ccxt_config() -> dict[str, Any]:
+        """
+        Exchange specific ccxt configuration.
+
+        Return a dictionary with extra options to pass to ccxt when creating the
+        connection instance.
+        """
+        return {"options": {"defaultType": attrs.fields(BinanceFutures).market.default}}

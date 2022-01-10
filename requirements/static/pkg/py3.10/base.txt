@@ -10,10 +10,14 @@ aiohttp==3.8.1
     # via ccxt
 aiosignal==1.2.0
     # via aiohttp
+arrow==1.2.1
+    # via -r requirements/base.txt
 async-timeout==4.0.2
     # via aiohttp
 attrs==21.4.0
-    # via aiohttp
+    # via
+    #   -r requirements/base.txt
+    #   aiohttp
 cachetools==5.0.0
     # via -r requirements/base.txt
 ccxt==1.66.21
@@ -32,6 +36,8 @@ charset-normalizer==2.0.9
     #   requests
 cryptography==36.0.1
     # via ccxt
+dependency-injector==4.37.0
+    # via -r requirements/base.txt
 frozenlist==1.2.0
     # via
     #   aiohttp
@@ -45,8 +51,10 @@ multidict==5.2.0
     #   aiohttp
     #   yarl
 numpy==1.22.0
-    # via polars
-polars==0.12.8
+    # via
+    #   -r requirements/base.txt
+    #   pandas
+pandas==1.3.5
     # via -r requirements/base.txt
 pycares==4.1.2
     # via aiodns
@@ -54,10 +62,22 @@ pycparser==2.21
     # via cffi
 pydantic==1.9.0
     # via -r requirements/base.txt
+python-dateutil==2.8.2
+    # via
+    #   arrow
+    #   pandas
+pytz==2021.3
+    # via pandas
 requests==2.26.0
     # via ccxt
+six==1.16.0
+    # via
+    #   dependency-injector
+    #   python-dateutil
 typing-extensions==4.0.1
-    # via pydantic
+    # via
+    #   -r requirements/base.txt
+    #   pydantic
 urllib3==1.26.7
     # via requests
 yarl==1.7.2

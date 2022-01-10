@@ -8,12 +8,17 @@ import asyncio
 import json
 import logging
 import os
+import pathlib
 import shlex
 import shutil
+from typing import cast
 from typing import TYPE_CHECKING
+
+import attrs
 
 from mcookbook import CODE_ROOT_DIR
 from mcookbook.cli.abc import CLIService
+from mcookbook.config.base import BaseConfig
 from mcookbook.config.notebook import NotebookConfig
 
 JUPYTER_LAB_BINARY_PATH = shutil.which("jupyter-lab")
@@ -25,16 +30,57 @@ AVAILABLE_NOTEBOOKS = [
 log = logging.getLogger(__name__)
 
 
+@attrs.define(kw_only=True)
 class NotebookService(CLIService):
     """
     Live trading service implementation.
     """
 
-    def __init__(self, config: NotebookConfig) -> None:
-        self.config = config
+    config: NotebookConfig
+    temp_notebook_path: pathlib.Path
+
+    def __attrs_post_init__(self) -> None:
+        """
+        Post attrs, initialization routines.
+        """
         tmp_path = self.config.basedir / "tmp"
         tmp_path.mkdir(exist_ok=True)
         self.temp_notebook_path = tmp_path / self.config.notebook.name
+
+    @staticmethod
+    def setup_parser(parser: argparse.ArgumentParser) -> None:
+        """
+        Setup the sub-parser.
+        """
+        parser.add_argument("NOTEBOOK")
+        parser.add_argument(
+            "--keep-temp-notebook",
+            action="store_true",
+            default=False,
+            help="Keep the temporary notebooks copied from source",
+        )
+
+    @staticmethod
+    def post_process_argparse_parsed_args(  # pylint: disable=unused-argument
+        parser: argparse.ArgumentParser,
+        args: argparse.Namespace,
+        config: BaseConfig,
+    ) -> None:
+        """
+        Post process the parser arguments after the configuration files have been loaded.
+        """
+        if JUPYTER_LAB_BINARY_PATH is None:
+            message = (
+                "The pappermill library is not installed. Please run the following on your "
+                "cloned repository root:\n"
+                "  python -m pip install -e .[notebook]\n"
+            )
+            parser.exit(status=1, message=message)
+        if TYPE_CHECKING:
+            config = cast(NotebookConfig, config)
+        config._notebook = args.NOTEBOOK
+        config._config_files = args.config_files
+        config.keep_temp_notebook = args.keep_temp_notebook  # type: ignore[misc]
 
     async def work(self) -> None:
         """
@@ -91,50 +137,3 @@ class NotebookService(CLIService):
             log.info("Deleting %s", relpath)
             self.temp_notebook_path.unlink()
         return await super().await_closed()
-
-
-async def _main(config: NotebookConfig) -> None:
-    """
-    Asynchronous main method.
-    """
-    service = NotebookService(config)
-    await service.run()
-
-
-def main(config: NotebookConfig) -> None:
-    """
-    Synchronous main method.
-    """
-    asyncio.run(_main(config))
-
-
-def setup_parser(parser: argparse.ArgumentParser) -> None:
-    """
-    Setup the sub-parser.
-    """
-    parser.add_argument("NOTEBOOK")
-    parser.add_argument(
-        "--keep-temp-notebook",
-        action="store_true",
-        default=False,
-        help="Keep the temporary notebooks copied from source",
-    )
-    parser.set_defaults(func=main)
-
-
-def post_process_argparse_parsed_args(
-    parser: argparse.ArgumentParser, args: argparse.Namespace, config: NotebookConfig
-) -> None:
-    """
-    Post process the parser arguments after the configuration files have been loaded.
-    """
-    if JUPYTER_LAB_BINARY_PATH is None:
-        message = (
-            "The pappermill library is not installed. Please run the following on your "
-            "cloned repository root:\n"
-            "  python -m pip install -e .[notebook]\n"
-        )
-        parser.exit(status=1, message=message)
-    config._notebook = args.NOTEBOOK
-    config._config_files = args.config_files
-    config.keep_temp_notebook = args.keep_temp_notebook

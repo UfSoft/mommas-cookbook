@@ -16,12 +16,17 @@ aiosignal==1.2.0
     # via
     #   -r requirements/static/pkg/py3.10/base.txt
     #   aiohttp
+arrow==1.2.1
+    # via
+    #   -r requirements/base.txt
+    #   -r requirements/static/pkg/py3.10/base.txt
 async-timeout==4.0.2
     # via
     #   -r requirements/static/pkg/py3.10/base.txt
     #   aiohttp
 attrs==21.4.0
     # via
+    #   -r requirements/base.txt
     #   -r requirements/static/pkg/py3.10/base.txt
     #   aiohttp
     #   pytest
@@ -52,6 +57,10 @@ cryptography==36.0.1
     # via
     #   -r requirements/static/pkg/py3.10/base.txt
     #   ccxt
+dependency-injector==4.37.0
+    # via
+    #   -r requirements/base.txt
+    #   -r requirements/static/pkg/py3.10/base.txt
 frozenlist==1.2.0
     # via
     #   -r requirements/static/pkg/py3.10/base.txt
@@ -71,16 +80,17 @@ multidict==5.2.0
     #   yarl
 numpy==1.22.0
     # via
+    #   -r requirements/base.txt
     #   -r requirements/static/pkg/py3.10/base.txt
-    #   polars
+    #   pandas
 packaging==21.3
     # via pytest
-pluggy==1.0.0
-    # via pytest
-polars==0.12.8
+pandas==1.3.5
     # via
     #   -r requirements/base.txt
     #   -r requirements/static/pkg/py3.10/base.txt
+pluggy==1.0.0
+    # via pytest
 py==1.11.0
     # via pytest
 pycares==4.1.2
@@ -103,14 +113,29 @@ pytest==6.2.5
     # via
     #   -r requirements/tests.txt
     #   pytest-subtests
+python-dateutil==2.8.2
+    # via
+    #   -r requirements/static/pkg/py3.10/base.txt
+    #   arrow
+    #   pandas
+pytz==2021.3
+    # via
+    #   -r requirements/static/pkg/py3.10/base.txt
+    #   pandas
 requests==2.26.0
     # via
     #   -r requirements/static/pkg/py3.10/base.txt
     #   ccxt
+six==1.16.0
+    # via
+    #   -r requirements/static/pkg/py3.10/base.txt
+    #   dependency-injector
+    #   python-dateutil
 toml==0.10.2
     # via pytest
 typing-extensions==4.0.1
     # via
+    #   -r requirements/base.txt
     #   -r requirements/static/pkg/py3.10/base.txt
     #   pydantic
 urllib3==1.26.7

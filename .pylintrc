@@ -70,7 +70,8 @@ disable=R, # R* [refactoring suggestions & reports]
   missing-function-docstring,
   # Pyupgrade will convert to f-strings when possible
   consider-using-f-string,
-  protected-access
+  protected-access,
+  fixme,  # W0511
 
 
 [REPORTS]
@@ -154,29 +155,7 @@ dummy-variables-rgx=_$|dummy
 
 # List of additional names supposed to be defined in builtins. Remember that
 # you should avoid to define new builtins when possible.
-additional-builtins=__opts__,
-  __utils__,
-  __salt__,
-  __pillar__,
-  __grains__,
-  __context__,
-  __runner__,
-  __ret__,
-  __env__,
-  __low__,
-  __states__,
-  __lowstate__,
-  __running__,
-  __active_provider_name__,
-  __master_opts__,
-  __jid_event__,
-  __instance_id__,
-  __salt_system_encoding__,
-  __proxy__,
-  __serializers__,
-  __reg__,
-  __executors__,
-  __events__
+additional-builtins=
 
 # List of strings which can identify a callback function by name. A callback
 # name must start or end with one of those strings.
@@ -195,7 +174,7 @@ notes=FIXME,XXX,TODO
 bad-functions=map,filter,input
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,j,k,ex,Run,_,log,pytest_plugins,__opts__,__context__
+good-names=df,i,j,k,ex,Run,_,log,pytest_plugins
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata

@@ -125,14 +125,10 @@ def tests(session):
     env = {}
     if SKIP_REQUIREMENTS_INSTALL is False:
         # Always have the wheel package installed
-        session.install("--progress-bar=off", "wheel", silent=PIP_INSTALL_SILENT)
-        session.install(
-            "--progress-bar=off", COVERAGE_VERSION_REQUIREMENT, silent=PIP_INSTALL_SILENT
-        )
         session.install(
             "--progress-bar=off",
             "-e",
-            f".[tests-{python_version_str(session)}]",
+            f".[tests-{python_version_str(session)},dev]",
             silent=PIP_INSTALL_SILENT,
         )
 
@@ -243,7 +239,7 @@ def _lint(session, rcfile, flags, paths, extras_require: tuple[str, ...]):
             sys.stdout.flush()
             if pylint_report_path:
                 # Write report
-                with open(pylint_report_path, "w") as wfh:
+                with open(pylint_report_path, "w", encoding="utf-8") as wfh:
                     wfh.write(contents)
                 session.log("Report file written to %r", pylint_report_path)
         stdout.close()
@@ -302,7 +298,7 @@ def docs(session):
     session.run("make", "coverage", "SPHINXOPTS=-W", external=True)
     docs_coverage_file = os.path.join("_build", "html", "python.txt")
     if os.path.exists(docs_coverage_file):
-        with open(docs_coverage_file) as rfh:
+        with open(docs_coverage_file, encoding="utf-8") as rfh:
             contents = rfh.readlines()[2:]
             if contents:
                 session.error("\n" + "".join(contents))

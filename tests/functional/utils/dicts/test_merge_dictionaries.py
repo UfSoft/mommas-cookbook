@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from mcookbook.utils import merge_dictionaries
+from mcookbook.utils.dicts import merge_dictionaries
 
 
 @pytest.fixture

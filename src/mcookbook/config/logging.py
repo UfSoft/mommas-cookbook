@@ -7,6 +7,7 @@ import pathlib
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import Field
 from pydantic import validator
 
 from mcookbook.utils.logs import SORTED_LEVEL_NAMES
@@ -19,7 +20,7 @@ class LoggingCliConfig(BaseModel):
 
     level: str = "info"
     datefmt: str = "%H:%M:%S"
-    fmt: str = "[%(asctime)s] [%(levelname)-7s] %(message)s"
+    fmt: str = "[%(asctime)s] [%(name)-17s:%(lineno)-4d][%(levelname)-7s] %(message)s"
 
     @validator("level")
     @classmethod
@@ -53,6 +54,16 @@ class LoggingFileConfig(BaseModel):
         return value
 
 
+class Levels(BaseModel):
+    """
+    Custom logging handler levels.
+    """
+
+    requests: str = "info"
+    urllib3: str = "info"
+    ccxt_base_exchange: str = Field("info", alias="ccxt.base.exchange")
+
+
 class LoggingConfig(BaseModel):
     """
     Logging configuration.
@@ -60,3 +71,14 @@ class LoggingConfig(BaseModel):
 
     cli: LoggingCliConfig = LoggingCliConfig()
     file: LoggingFileConfig = LoggingFileConfig()
+    levels: Levels = Levels()
+
+    @validator("levels", always=True)
+    @classmethod
+    def _validate_levels(cls, value: Levels) -> Levels:
+        for logger, level in value.dict(by_alias=True).items():
+            if level not in SORTED_LEVEL_NAMES:
+                raise ValueError(
+                    f"Level for '{logger}', '{level}' not valid. Available levels: {', '.join(SORTED_LEVEL_NAMES)}"
+                )
+        return value

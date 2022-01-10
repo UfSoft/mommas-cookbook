@@ -132,7 +132,6 @@ class TemporaryLoggingHandler(logging.NullHandler):
     """
 
     def __init__(self, level: int = logging.NOTSET, max_queue_size: int = 10000) -> None:
-        self.__max_queue_size: int = max_queue_size
         super().__init__(level=level)
         self.__messages: Deque[logging.LogRecord] = deque(maxlen=max_queue_size)
 
@@ -178,7 +177,12 @@ class ConsoleHandler(logging.StreamHandler):  # type: ignore[type-arg]
         """
         msg = super().format(record)
         previous_record_wiped = self._previous_record_wiped
-        wipe_line = cast(LogRecord, record).wipe_line
+        try:
+            wipe_line = cast(LogRecord, record).wipe_line
+        except AttributeError:
+            # This must be a pretty early log record since it doesn't have the .wipe_line attribute
+            # Carry on...
+            wipe_line = False
         self._previous_record_wiped = wipe_line
         if wipe_line and previous_record_wiped:
             msg = f"\r{msg}"
@@ -199,10 +203,16 @@ class ConsoleHandler(logging.StreamHandler):  # type: ignore[type-arg]
         """
         try:
             msg: str = self.format(record)
+            try:
+                wipe_line = cast(LogRecord, record).wipe_line
+            except AttributeError:
+                # This must be a pretty early log record since it doesn't have the .wipe_line attribute
+                # Carry on...
+                wipe_line = False
+            if wipe_line is False:
+                msg = f"{msg}{self.terminator}"
             stream = self.stream
             # issue 35046: merged two stream.writes into one.
-            if cast(LogRecord, record).wipe_line is False:
-                msg = f"{msg}{self.terminator}"
             stream.write(msg)
             self.flush()
         except RecursionError:  # See issue 36272

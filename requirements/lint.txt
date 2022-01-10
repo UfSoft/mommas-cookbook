@@ -1,6 +1,7 @@
 -r base.txt
 -r tests.txt
-pylint==2.7.4
+pylint==2.12.2
+astroid==2.9.3
 pyenchant
 black; python_version >= '3.7'
 reorder-python-imports; python_version >= '3.7'

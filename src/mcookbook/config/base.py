@@ -17,10 +17,10 @@ from pydantic import validator
 
 from mcookbook.config.exchange import ExchangeConfig
 from mcookbook.config.logging import LoggingConfig
+from mcookbook.config.pairlist import PairListConfig
 from mcookbook.exceptions import MCookBookSystemExit
-from mcookbook.pairlist import PairList
-from mcookbook.utils import merge_dictionaries
-from mcookbook.utils import sanitize_dictionary
+from mcookbook.utils.dicts import merge_dictionaries
+from mcookbook.utils.dicts import sanitize_dictionary
 
 BaseConfigType = TypeVar("BaseConfigType", bound="BaseConfig")
 
@@ -35,10 +35,13 @@ class BaseConfig(BaseModel):
         Schema configuration.
         """
 
+        extra = "forbid"
+        allow_mutation = False
         validate_assignment = True
 
+    stake_currency: str = "USDT"
     exchange: ExchangeConfig = Field(..., allow_mutation=False)
-    pairlists: list[PairList] = Field(min_items=1)
+    pairlists: list[PairListConfig] = Field(min_items=1)
     pairlist_refresh_period: int = 3600
 
     # Optional Configs
@@ -52,17 +55,19 @@ class BaseConfig(BaseModel):
         """
         Helper class method to load the configuration from multiple files.
         """
+        if not files:
+            raise ValueError("No configuration files were passed")
         config_dicts: list[dict[str, Any]] = []
         for file in files:
             if not isinstance(file, pathlib.Path):
                 file = pathlib.Path(file)
-            config_dicts.append(json.loads(file.read_text()))
+            config_dicts.append(json.loads(file.read_text(encoding="utf-8")))
         config = config_dicts.pop(0)
         if config_dicts:
             merge_dictionaries(config, *config_dicts)
         cls.update_forward_refs()
         try:
-            return cls.parse_raw(json.dumps(config))
+            return cls(**config)
         except Exception as exc:
             raise MCookBookSystemExit(
                 f"Failed to load configuration files:\n{traceback.format_exc()}\n\n"
@@ -70,16 +75,11 @@ class BaseConfig(BaseModel):
                 f'{pprint.pformat(sanitize_dictionary(config, ("key", "secret", "password", "uid")))}'
             ) from exc
 
-    @validator("pairlists", each_item=True, pre=True)
-    @classmethod
-    def _resolve_pairlist_implementation(cls, value: dict[str, Any]) -> PairList:
-        return PairList.resolved(value)
-
     @validator("pairlists")
     @classmethod
-    def _set_pairlist_position(cls, value: list[PairList]) -> list[PairList]:
+    def _set_pairlist_position(cls, value: list[PairListConfig]) -> list[PairListConfig]:
         for idx, pairlist in enumerate(value):
-            pairlist._position = idx
+            pairlist._order = idx
         return value
 
     @property

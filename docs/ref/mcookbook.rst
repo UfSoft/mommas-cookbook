@@ -12,14 +12,22 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   mcookbook.abc
    mcookbook.cli
    mcookbook.config
    mcookbook.exchanges
+   mcookbook.pairlist
    mcookbook.utils
 
 Submodules
 ----------
+
+mcookbook.events module
+-----------------------
+
+.. automodule:: mcookbook.events
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 mcookbook.exceptions module
 ---------------------------
