@@ -94,7 +94,24 @@ class Exchange(abc.ABC):
         await self.get_markets()
 
     async def _on_pairs_available(self, pairs: list[str]) -> None:
-        await self.refresh_latest_ohlcv(pair_list=[(pair, "1d") for pair in pairs])
+        # Since 61 days ago, starting at midnight
+        how_many_days = 1
+        log.info("Loading %d days worth of 1m candles for pairs: %s", how_many_days, pairs)
+        since_ms = arrow.utcnow().floor("days").shift(days=-how_many_days).int_timestamp * 1000
+        timeframes = ["1m", "15m", "1h", "1d"]
+        timeframes = ["1m"]
+        coros = []
+        for pair in pairs:
+            pairlist_with_timeframes = []
+            for timeframe in timeframes:
+                pairlist_with_timeframes.append((pair, timeframe))
+            coros.append(self.refresh_latest_ohlcv(pairlist_with_timeframes, since_ms=since_ms))
+        for coro in coros:
+            await coro
+
+        for pair in pairs:
+            for timeframe in timeframes:
+                print(self.klines((pair, timeframe)))
 
     @staticmethod
     def get_ccxt_headers() -> dict[str, str]:
