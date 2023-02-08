@@ -48,7 +48,7 @@ charset-normalizer==2.0.9
     #   -r requirements/static/pkg/py3.9/base.txt
     #   aiohttp
     #   requests
-cryptography==36.0.1
+cryptography==39.0.1
     # via
     #   -r requirements/static/pkg/py3.9/base.txt
     #   ccxt
