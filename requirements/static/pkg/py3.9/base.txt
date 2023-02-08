@@ -30,7 +30,7 @@ charset-normalizer==2.0.9
     # via
     #   aiohttp
     #   requests
-cryptography==36.0.1
+cryptography==39.0.1
     # via ccxt
 frozenlist==1.2.0
     # via
